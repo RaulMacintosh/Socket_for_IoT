@@ -1,55 +1,43 @@
 #include <SPI.h>
 #include <Ethernet.h>
 
-// Enter a MAC address for your controller below.
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };  
-//the IP address for the shield:
-byte ip[] = { 192, 168, 0, 117 };    
-// the router's gateway address:
-byte gateway[] = { 192, 168, 0, 1 };
-// the mask:
-byte mask[] = { 255, 255, 255, 0 };
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };    // MAC address
+byte ip[] = { 192, 168, 0, 117 };            // IP address. Change when use DHCP
+byte gateway[] = { 192, 168, 0, 1 };  // Router's gateway address. Change when use another network
+byte mask[] = { 255, 255, 255, 0 }; // Mask. Change when use another network
 
-EthernetServer server(5000);
-boolean alreadyConnected = false; // whether or not the client was connected previously
+EthernetServer server(5000); // Port 5000 to use on this socket, must be the same on client
+
+boolean alreadySent = true;
+String recvMSG = "";
+String sendMSG = "Hello, client!";
 
 void setup() {
-  // initialize the ethernet device
   Ethernet.begin(mac, ip, gateway, mask);
-  // start listening for clients
   server.begin();
-  // Open serial communications and wait for port to open:
   Serial.begin(9600);
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB port only
-  }
-
-
-  Serial.print("Chat server address:");
+  
+  Serial.print("Server address: ");
   Serial.println(Ethernet.localIP());
 }
 
 void loop() {
-  // wait for a new client:
   EthernetClient client = server.available();
 
-  // when the client sends the first byte, say hello:
   if (client) {
-    if (!alreadyConnected) {
-      // clear out the input buffer:
-      client.flush();
-      Serial.println("We have a new client");
-      client.println("Hello, client!");
-      alreadyConnected = true;
-    }
+    client.flush();
 
-    if (client.available() > 0) {
-      // read the bytes incoming from the client:
+    while (client.available() > 0) {
       char thisChar = client.read();
-      // echo the bytes back to the client:
-      client.write(thisChar);
-      // echo the bytes to the server as well:
-      Serial.print(thisChar);
+      recvMSG += thisChar;
+      alreadySent = false;
+    }
+    
+    if (!alreadySent){
+      Serial.println(recvMSG);
+      client.println(sendMSG);
+      alreadySent = true;
+      recvMSG = "";
     }
   }
 }
