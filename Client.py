@@ -1,55 +1,53 @@
 import socket
 import time
 
-temperature = "25 C\n"
-humidity = "30%\n"
-last_auth = "RFID Tag\n"
-other = "[ERROR] - Command not defined!\n"
+potentiometer = "1023\n"
+ldr = "30%\n"
+other = ""
 
 def client_thread(command):
     # Protocol: 
-    #   * 'a' -> get temperature
-    #   * 'b' -> get humidity
-    #   * 'c' -> get last authentication
-    #   * 'd' -> set on/off red LED
-    #   * 'e' -> set on/off yellow LED
-    #   * 'f' -> set on/off blue LED
+    #   * 'a' -> get potentiometer value
+    #   * 'b' -> get LDR value
+    #   * 'c' -> set on/off red LED
+    #   * 'd' -> set on/off yellow LED
+    #   * 'e' -> set on/off green LED
 
-    HOST = '192.168.0.117'
+    HOST = '192.168.25.8'
     PORT = 5000
     tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     dest = (HOST, PORT)
 
     tcp.connect(dest)
 
-    if command == "TMP":
+    global potentiometer
+    global ldr
+    global other
+
+    if command == "PT":
         tcp.send('a')
         time.sleep(1)
-        temperature = tcp.recv(1024)
-    elif command == "HMD":
+        potentiometer = tcp.recv(1024)
+    elif command == "LR":
         tcp.send('b')
         time.sleep(1)
-        humidity = tcp.recv(1024)
-    elif command == "AUTH":
+        ldr = tcp.recv(1024)
+    elif command == "L1":
         tcp.send('c')
         time.sleep(1)
-        last_auth = tcp.recv(1024)
-    elif command == "LED 1":
+        other = "Red LED\n"
+    elif command == "L2":
         tcp.send('d')
         time.sleep(1)
-        other = "LED 1"
-    elif command == "LED 2":
+        other = "Yellow LED\n"
+    elif command == "L3":
         tcp.send('e')
         time.sleep(1)
-        other = "LED 2"
-    elif command == "LED 3":
-        tcp.send('f')
-        time.sleep(1)
-        other = "LED 3"
+        other = "Green LED\n"
     else:
-        other = "[ERROR] - Command not defined!"
+        other = "[ERROR] - Command not defined!\n"
 
-    tcp_to_thing.close()
+    tcp.close()
 
 def server_thread():
     HOST = ''
@@ -67,18 +65,19 @@ def server_thread():
             con.recv(1024)
 
             if not command: break
-            print cliente, command
-            #client_thread(command)
-            if command == "TP":
-                con.send(temperature)
-            elif command == "HM":
-                con.send(humidity)
-            elif command == "AU":
-                con.send(last_auth)
-            else:
-                con.send(other)
 
-        print 'Finishing connection with ', cliente
-        con.close()
+            if command == "EX":
+                print 'Finishing connection with ', cliente
+                con.close()
+                break
+            else:
+                client_thread(command)
+
+                if command == "PT":
+                    con.send(potentiometer)
+                elif command == "LR":
+                    con.send(ldr)
+                else:
+                    con.send(other)
 
 server_thread()
